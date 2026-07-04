@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#16833b" />
+    <title>Lista de Compras</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body>
+    <main class="app">
+      <header class="header">
+        <div>
+          <p class="eyebrow">Supermercado</p>
+          <h1>Lista de Compras</h1>
+        </div>
+
+        <div id="syncEstado" class="sync-pill">Cargando</div>
+      </header>
+
+      <section class="main-panel">
+        <h2 class="main-title">Mi lista</h2>
+
+        <label class="field search-main">
+          <span>Buscar producto para agregar</span>
+          <input
+            id="buscar"
+            class="input"
+            type="search"
+            placeholder="Ej: huevos, leche, pan"
+            autocomplete="off"
+          />
+        </label>
+
+        <div
+          id="productos"
+          class="resultados-busqueda"
+          aria-live="polite"
+        ></div>
+
+        <section class="crear-producto-box">
+          <button
+            id="abrirCrearProducto"
+            class="btn btn-crear-producto"
+            type="button"
+          >
+            No encuentro el producto, crear uno nuevo
+          </button>
+
+          <form id="formCrearProducto" class="crear-producto-form" hidden>
+            <label class="field">
+              <span>Nombre del producto</span>
+              <input
+                id="nuevoProductoNombre"
+                class="input"
+                type="text"
+                autocomplete="off"
+              />
+            </label>
+
+            <label class="field">
+              <span>Categoría</span>
+              <select id="nuevoProductoCategoria" class="input"></select>
+            </label>
+
+            <div class="form-actions">
+              <button
+                id="guardarCrearProducto"
+                class="btn btn-agregar"
+                type="submit"
+              >
+                Guardar producto
+              </button>
+
+              <button
+                id="cancelarCrearProducto"
+                class="btn btn-light"
+                type="button"
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <section class="acciones-superiores">
+          <div class="dropdown-productos">
+            <button
+              id="abrirMenuProductos"
+              class="btn btn-menu-productos"
+              type="button"
+            >
+              Lista de productos disponibles
+            </button>
+
+            <div id="menuProductos" class="menu-productos" hidden></div>
+          </div>
+
+          <button
+            id="finalizarPedido"
+            class="btn btn-finalizar btn-finalizar-compacto"
+            type="button"
+          >
+            Finalizar pedido
+          </button>
+        </section>
+
+        <section class="section lista-unica-section">
+          <div class="section-title">
+            <h2>Productos a comprar</h2>
+
+            <button id="limpiarComprados" class="btn btn-light" type="button">
+              Limpiar comprados
+            </button>
+          </div>
+
+          <div id="lista" class="grid lista-grid" aria-live="polite"></div>
+        </section>
+      </section>
+    </main>
+
+    <div id="mensajeApp" class="toast" role="status" aria-live="polite"></div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
