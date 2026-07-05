@@ -699,4 +699,96 @@ button:disabled { cursor: wait; opacity: .65; }
   .btn-finalizar-compacto {
     min-width: 118px;
   }
-} 
+}
+
+
+
+.section-title-lista {
+  align-items: flex-start;
+}
+
+.acciones-lista {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.btn-borrar-lista {
+  min-height: 46px;
+  border: 2px solid var(--red);
+  background: var(--red-soft);
+  color: var(--red);
+  font-size: 16px;
+  padding-inline: 12px;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(0, 0, 0, .42);
+}
+
+.modal-overlay[hidden] {
+  display: none;
+}
+
+.modal-card {
+  width: min(520px, 100%);
+  padding: 22px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, .28);
+  text-align: center;
+}
+
+.modal-card h2 {
+  margin: 0 0 12px;
+  color: var(--red);
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.modal-card p {
+  margin: 0 0 20px;
+  color: var(--text);
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.modal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.btn-confirmar-borrar {
+  background: var(--red);
+  color: #fff;
+}
+
+.btn-cancelar-borrar {
+  background: var(--green);
+  color: #fff;
+}
+
+@media (max-width: 520px) {
+  .acciones-lista {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .acciones-lista .btn {
+    flex: 1;
+    font-size: 15px;
+  }
+
+  .modal-actions {
+    grid-template-columns: 1fr;
+  }
+}
