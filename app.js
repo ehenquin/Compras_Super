@@ -1080,3 +1080,11 @@ if (formCrearProducto) {
 }
 
 iniciarApp();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch((err) => {
+      console.warn("[PWA] No se pudo registrar service worker", err);
+    });
+  });
+}
