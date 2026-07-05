@@ -23,6 +23,10 @@ const listaDiv = document.getElementById("lista");
 const syncEstado = document.getElementById("syncEstado");
 const finalizarPedido = document.getElementById("finalizarPedido");
 const limpiarComprados = document.getElementById("limpiarComprados");
+const borrarListaCompleta = document.getElementById("borrarListaCompleta");
+const modalBorrarLista = document.getElementById("modalBorrarLista");
+const confirmarBorrarLista = document.getElementById("confirmarBorrarLista");
+const cancelarBorrarLista = document.getElementById("cancelarBorrarLista");
 const mensajeApp = document.getElementById("mensajeApp");
 
 const abrirMenuProductos = document.getElementById("abrirMenuProductos");
@@ -920,6 +924,49 @@ async function limpiarItemsComprados() {
   });
 }
 
+function abrirModalBorrarLista() {
+  if (!modalBorrarLista) return;
+  modalBorrarLista.hidden = false;
+}
+
+function cerrarModalBorrarLista() {
+  if (!modalBorrarLista) return;
+  modalBorrarLista.hidden = true;
+}
+
+async function borrarListaCompletaConfirmada() {
+  cerrarModalBorrarLista();
+
+  const listaAnterior = lista.map((item) => ({ ...item }));
+
+  lista = [];
+  renderTodo();
+  guardarCache();
+  setSyncEstado("Lista lista", "ok");
+
+  requestBackend({ action: "clearList" })
+    .then(() => {
+      lista = [];
+      guardarCache();
+      renderTodo();
+      setSyncEstado("Lista lista", "ok");
+      mostrarMensaje("Lista borrada.");
+    })
+    .catch((err) => {
+      lista = listaAnterior;
+      guardarCache();
+      renderTodo();
+
+      console.warn("[SYNC] No se pudo borrar lista completa", {
+        code: err.code,
+        message: err.message,
+        response: err.response,
+      });
+
+      mostrarMensaje("No se pudo borrar la lista.");
+    });
+}
+
 function abrirFormularioCrearProducto() {
   if (!formCrearProducto) return;
   renderCategoriasCrearProducto();
@@ -1052,6 +1099,24 @@ function iniciarApp() {
 buscar.addEventListener("input", renderProductos);
 
 limpiarComprados.addEventListener("click", limpiarItemsComprados);
+
+if (borrarListaCompleta) {
+  borrarListaCompleta.addEventListener("click", abrirModalBorrarLista);
+}
+
+if (confirmarBorrarLista) {
+  confirmarBorrarLista.addEventListener("click", borrarListaCompletaConfirmada);
+}
+
+if (cancelarBorrarLista) {
+  cancelarBorrarLista.addEventListener("click", cerrarModalBorrarLista);
+}
+
+if (modalBorrarLista) {
+  modalBorrarLista.addEventListener("click", (event) => {
+    if (event.target === modalBorrarLista) cerrarModalBorrarLista();
+  });
+}
 
 finalizarPedido.addEventListener("click", () => {
   const mensaje = crearMensajeWhatsApp();
