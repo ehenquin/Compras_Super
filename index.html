@@ -117,18 +117,54 @@
         </section>
 
         <section class="section lista-unica-section">
-          <div class="section-title">
+          <div class="section-title section-title-lista">
             <h2>Productos a comprar</h2>
 
-            <button id="limpiarComprados" class="btn btn-light" type="button">
-              Limpiar comprados
-            </button>
+            <div class="acciones-lista">
+              <button
+                id="borrarListaCompleta"
+                class="btn btn-borrar-lista"
+                type="button"
+              >
+                Borrar lista completa
+              </button>
+
+              <button id="limpiarComprados" class="btn btn-light" type="button">
+                Limpiar comprados
+              </button>
+            </div>
           </div>
 
           <div id="lista" class="grid lista-grid" aria-live="polite"></div>
         </section>
       </section>
     </main>
+
+    <div id="modalBorrarLista" class="modal-overlay" hidden>
+      <div class="modal-card" role="dialog" aria-modal="true">
+        <h2>VAS A BORRAR TODA LA LISTA DE COMPRA CARGADA.</h2>
+
+        <p>¿SEGURO QUERÉS BORRAR?</p>
+
+        <div class="modal-actions">
+          <button
+            id="confirmarBorrarLista"
+            class="btn btn-confirmar-borrar"
+            type="button"
+          >
+            Sí, borrar
+          </button>
+
+          <button
+            id="cancelarBorrarLista"
+            class="btn btn-cancelar-borrar"
+            type="button"
+          >
+            No, cancelar
+          </button>
+        </div>
+      </div>
+    </div>
 
     <div id="mensajeApp" class="toast" role="status" aria-live="polite"></div>
 
