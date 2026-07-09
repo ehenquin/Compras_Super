@@ -3,7 +3,7 @@ const API_URL =
 
 const WHATSAPP_URL = "https://wa.me/5493424307388?text=";
 
-const CACHE_KEY = "compras_super_limpia_v1";
+const CACHE_KEY = "compras_super_limpia_v2";
 
 const DEBUG_SYNC =
   new URLSearchParams(window.location.search).get("debug") === "1";
@@ -16,6 +16,7 @@ let productoIdMap = new Map();
 let productoNombreMap = new Map();
 let cargando = false;
 let toastTimer = null;
+let pasoConfirmacionBorrado = 1;
 
 const buscar = document.getElementById("buscar");
 const productosDiv = document.getElementById("productos");
@@ -31,6 +32,9 @@ const mensajeApp = document.getElementById("mensajeApp");
 
 const abrirMenuProductos = document.getElementById("abrirMenuProductos");
 const menuProductos = document.getElementById("menuProductos");
+const abrirMenuFavoritos = document.getElementById("abrirMenuFavoritos");
+const menuFavoritos = document.getElementById("menuFavoritos");
+
 const abrirCrearProducto = document.getElementById("abrirCrearProducto");
 const formCrearProducto = document.getElementById("formCrearProducto");
 const nuevoProductoNombre = document.getElementById("nuevoProductoNombre");
@@ -228,9 +232,11 @@ function getProductoInfo(item) {
   const valorProducto = limpiarTexto(
     campo(item, ["Producto", "producto", "Nombre Producto", "NombreProducto"]),
   );
+
   const idProductoDirecto = limpiarTexto(
     campo(item, ["IDProducto", "idProducto"]),
   );
+
   let producto =
     productoIdMap.get(valorProducto) ||
     productoIdMap.get(idProductoDirecto) ||
@@ -238,15 +244,27 @@ function getProductoInfo(item) {
 
   const idProducto =
     limpiarTexto(campo(producto, ["IDProducto"])) || idProductoDirecto;
+
   const nombreResuelto = limpiarTexto(
     campo(producto, ["Nombre Producto", "NombreProducto"]),
   );
+
   const nombreProducto =
     nombreResuelto || valorProducto || "Producto sin nombre";
+
   const idCategoria = limpiarTexto(campo(producto, ["Categoría", "Categoria"]));
+
   const nombreCategoria = getCategoriaNombre(idCategoria);
 
-  return { idProducto, nombreProducto, idCategoria, nombreCategoria };
+  const fav = limpiarTexto(campo(producto, ["FAV", "Fav", "fav"])) || "NO";
+
+  return {
+    idProducto,
+    nombreProducto,
+    idCategoria,
+    nombreCategoria,
+    fav,
+  };
 }
 
 function escapeHtml(valor) {
@@ -309,6 +327,104 @@ function guardarCache() {
   }
 }
 
+function parseFavorito(valor) {
+  const txt = String(valor || "")
+    .trim()
+    .toLowerCase();
+
+  return (
+    txt === "si" ||
+    txt === "sí" ||
+    txt === "true" ||
+    txt === "1" ||
+    txt === "fav" ||
+    txt === "⭐"
+  );
+}
+
+function esFavorito(info) {
+  return parseFavorito(info.fav);
+}
+
+function productoEstaEnLista(info) {
+  const nombreInfo = normalizar(info.nombreProducto);
+  const idInfo = limpiarTexto(info.idProducto);
+
+  return lista.some((item) => {
+    const itemInfo = getProductoInfo(item);
+
+    return (
+      normalizar(itemInfo.nombreProducto) === nombreInfo ||
+      (idInfo && limpiarTexto(itemInfo.idProducto) === idInfo)
+    );
+  });
+}
+
+function actualizarProductoFavLocal(info, nuevoFav) {
+  productos = productos.map((producto) => {
+    const actual = getProductoInfo(producto);
+
+    const mismoId =
+      info.idProducto &&
+      actual.idProducto &&
+      String(actual.idProducto) === String(info.idProducto);
+
+    const mismoNombre =
+      normalizar(actual.nombreProducto) === normalizar(info.nombreProducto);
+
+    if (mismoId || mismoNombre) {
+      return {
+        ...producto,
+        FAV: nuevoFav,
+      };
+    }
+
+    return producto;
+  });
+
+  reconstruirIndices();
+}
+
+function toggleFavorito(info) {
+  if (!info.idProducto) {
+    mostrarMensaje("No se pudo identificar el producto.");
+    return;
+  }
+
+  const nuevoFav = esFavorito(info) ? "NO" : "SI";
+
+  actualizarProductoFavLocal(info, nuevoFav);
+  guardarCache();
+
+  mostrarMensaje(
+    nuevoFav === "SI" ? "Agregado a favoritos." : "Quitado de favoritos.",
+  );
+
+  renderProductos();
+
+  if (menuProductos && !menuProductos.hidden) {
+    renderMenuProductosDisponibles();
+  }
+
+  if (menuFavoritos && !menuFavoritos.hidden) {
+    renderMenuFavoritos();
+    menuFavoritos.hidden = false;
+  }
+
+  requestBackend({
+    action: "updateFav",
+    idProducto: info.idProducto,
+    fav: nuevoFav,
+  }).catch((err) => {
+    console.warn("[FAVORITOS] No se pudo actualizar favorito en Sheets", {
+      code: err.code,
+      message: err.message,
+      response: err.response,
+    });
+
+    mostrarMensaje("Favorito pendiente de sincronizar.");
+  });
+}
 function renderTodo() {
   reconstruirIndices();
   renderProductos();
@@ -433,13 +549,26 @@ function renderProductos() {
         a.info.nombreProducto.localeCompare(b.info.nombreProducto, "es"),
       )
       .forEach(({ info }) => {
+        const favorito = esFavorito(info);
+        const yaSeleccionado = productoEstaEnLista(info);
+
         const card = document.createElement("article");
-        card.className = "product-result-row";
+        card.className =
+          "product-result-row product-result-row-fav" +
+          (yaSeleccionado ? " producto-ya-seleccionado" : "");
 
         card.innerHTML = `
           <div class="product-result-text">
             <strong>${escapeHtml(info.nombreProducto)}</strong>
           </div>
+
+          <button
+            class="fav-small-btn ${favorito ? "activo" : ""}"
+            type="button"
+            aria-label="Marcar favorito"
+          >
+            ${favorito ? "★" : "☆"}
+          </button>
 
           <button
             class="add-small-btn"
@@ -451,7 +580,11 @@ function renderProductos() {
         `;
 
         card
-          .querySelector("button")
+          .querySelector(".fav-small-btn")
+          .addEventListener("click", () => toggleFavorito(info));
+
+        card
+          .querySelector(".add-small-btn")
           .addEventListener("click", () => agregarProducto(info));
 
         contenedor.appendChild(card);
@@ -492,15 +625,38 @@ function renderMenuProductosDisponibles() {
         a.info.nombreProducto.localeCompare(b.info.nombreProducto, "es"),
       )
       .forEach(({ info }) => {
-        const item = document.createElement("button");
-        item.className = "menu-producto-item";
-        item.type = "button";
-        item.textContent = info.nombreProducto;
+        const favorito = esFavorito(info);
+        const yaSeleccionado = productoEstaEnLista(info);
 
-        item.addEventListener("click", () => {
-          agregarProducto(info);
-          if (menuProductos) menuProductos.hidden = true;
-        });
+        const item = document.createElement("div");
+        item.className =
+          "menu-producto-row" +
+          (yaSeleccionado ? " producto-ya-seleccionado" : "");
+
+        item.innerHTML = `
+          <button class="menu-producto-item" type="button">
+            ${escapeHtml(info.nombreProducto)}
+          </button>
+
+          <button
+            class="fav-menu-btn ${favorito ? "activo" : ""}"
+            type="button"
+            aria-label="Marcar favorito"
+          >
+            ${favorito ? "★" : "☆"}
+          </button>
+        `;
+
+        item
+          .querySelector(".menu-producto-item")
+          .addEventListener("click", () => {
+            agregarProducto(info);
+            if (menuProductos) menuProductos.hidden = true;
+          });
+
+        item
+          .querySelector(".fav-menu-btn")
+          .addEventListener("click", () => toggleFavorito(info));
 
         contenedor.appendChild(item);
       });
@@ -519,8 +675,113 @@ function toggleMenuProductos() {
   if (vaAAbrir) {
     renderMenuProductosDisponibles();
     menuProductos.hidden = false;
+    if (menuFavoritos) menuFavoritos.hidden = true;
   } else {
     menuProductos.hidden = true;
+  }
+}
+
+function renderMenuFavoritos() {
+  if (!menuFavoritos) return;
+
+  menuFavoritos.innerHTML = "";
+
+  const productosFavoritos = productos.filter((producto) => {
+    const info = getProductoInfo(producto);
+    return esFavorito(info);
+  });
+
+  if (!productosFavoritos.length) {
+    menuFavoritos.innerHTML = `<div class="menu-vacio">Todavía no hay favoritos.</div>`;
+    return;
+  }
+
+  const grupos = agruparPorCategoria(productosFavoritos, getProductoInfo);
+  const fragment = document.createDocumentFragment();
+
+  nombresCategoriaOrdenados(grupos).forEach((nombreCategoria) => {
+    const bloque = document.createElement("section");
+    bloque.className = "menu-categoria";
+
+    bloque.innerHTML = `
+      <div class="menu-categoria-titulo">${escapeHtml(nombreCategoria)}</div>
+      <div class="menu-categoria-items"></div>
+    `;
+
+    const contenedor = bloque.querySelector(".menu-categoria-items");
+
+    grupos[nombreCategoria]
+      .sort((a, b) =>
+        a.info.nombreProducto.localeCompare(b.info.nombreProducto, "es"),
+      )
+      .forEach(({ info }) => {
+        const yaSeleccionado = productoEstaEnLista(info);
+
+        const item = document.createElement("div");
+        item.className =
+          "menu-producto-row" +
+          (yaSeleccionado ? " producto-ya-seleccionado" : "");
+
+        item.innerHTML = `
+          <button class="menu-producto-item" type="button">
+            ${escapeHtml(info.nombreProducto)}
+          </button>
+
+          <button
+            class="fav-menu-btn activo"
+            type="button"
+            aria-label="Quitar favorito"
+          >
+            ★
+          </button>
+        `;
+
+        item
+          .querySelector(".menu-producto-item")
+          .addEventListener("click", (event) => {
+            event.stopPropagation();
+
+            agregarProducto(info);
+
+            setTimeout(() => {
+              renderMenuFavoritos();
+              menuFavoritos.hidden = false;
+            }, 0);
+          });
+
+        item
+          .querySelector(".fav-menu-btn")
+          .addEventListener("click", (event) => {
+            event.stopPropagation();
+
+            toggleFavorito(info);
+
+            setTimeout(() => {
+              renderMenuFavoritos();
+              menuFavoritos.hidden = false;
+            }, 0);
+          });
+
+        contenedor.appendChild(item);
+      });
+
+    fragment.appendChild(bloque);
+  });
+
+  menuFavoritos.appendChild(fragment);
+}
+
+function toggleMenuFavoritos() {
+  if (!menuFavoritos) return;
+
+  const vaAAbrir = menuFavoritos.hidden;
+
+  if (vaAAbrir) {
+    renderMenuFavoritos();
+    menuFavoritos.hidden = false;
+    if (menuProductos) menuProductos.hidden = true;
+  } else {
+    menuFavoritos.hidden = true;
   }
 }
 
@@ -924,17 +1185,63 @@ async function limpiarItemsComprados() {
   });
 }
 
+function pintarModalBorradoPaso1() {
+  if (!modalBorrarLista) return;
+
+  pasoConfirmacionBorrado = 1;
+
+  const card = modalBorrarLista.querySelector(".modal-card");
+  const titulo = modalBorrarLista.querySelector("h2");
+  const texto = modalBorrarLista.querySelector("p");
+
+  card.classList.remove("modal-card-alerta-final");
+
+  titulo.textContent = "VAS A BORRAR TODA LA LISTA DE COMPRA CARGADA.";
+  texto.textContent = "¿SEGURO QUERÉS BORRAR?";
+
+  confirmarBorrarLista.textContent = "Sí, borrar";
+  cancelarBorrarLista.textContent = "No, cancelar";
+}
+
+function pintarModalBorradoPaso2() {
+  if (!modalBorrarLista) return;
+
+  pasoConfirmacionBorrado = 2;
+
+  const card = modalBorrarLista.querySelector(".modal-card");
+  const titulo = modalBorrarLista.querySelector("h2");
+  const texto = modalBorrarLista.querySelector("p");
+
+  card.classList.add("modal-card-alerta-final");
+
+  titulo.textContent =
+    "BLANCA, estás por borrar la lista que hiciste y tu hijo no va a poder hacerte el pedido.";
+
+  texto.textContent =
+    "¿Estás segura que querés borrar esto? Tu hijo se queda sin lista y vos sin pedido.";
+
+  confirmarBorrarLista.textContent = "Sí, borrar tranquilo";
+  cancelarBorrarLista.textContent = "No, no borrar me equivoqué";
+}
+
 function abrirModalBorrarLista() {
   if (!modalBorrarLista) return;
+  pintarModalBorradoPaso1();
   modalBorrarLista.hidden = false;
 }
 
 function cerrarModalBorrarLista() {
   if (!modalBorrarLista) return;
   modalBorrarLista.hidden = true;
+  pintarModalBorradoPaso1();
 }
 
 async function borrarListaCompletaConfirmada() {
+  if (pasoConfirmacionBorrado === 1) {
+    pintarModalBorradoPaso2();
+    return;
+  }
+
   cerrarModalBorrarLista();
 
   const listaAnterior = lista.map((item) => ({ ...item }));
@@ -1073,9 +1380,34 @@ async function crearProductoNuevo(event) {
   }
 }
 
+document.addEventListener("click", (event) => {
+  const clickDentroMenuProductos =
+    menuProductos &&
+    !menuProductos.hidden &&
+    menuProductos.contains(event.target);
+
+  const clickBotonProductos =
+    abrirMenuProductos && abrirMenuProductos.contains(event.target);
+
+  const clickDentroMenuFavoritos =
+    menuFavoritos &&
+    !menuFavoritos.hidden &&
+    menuFavoritos.contains(event.target);
+
+  const clickBotonFavoritos =
+    abrirMenuFavoritos && abrirMenuFavoritos.contains(event.target);
+
+  if (!clickDentroMenuProductos && !clickBotonProductos && menuProductos) {
+    menuProductos.hidden = true;
+  }
+
+  if (!clickDentroMenuFavoritos && !clickBotonFavoritos && menuFavoritos) {
+    menuFavoritos.hidden = true;
+  }
+});
+
 function iniciarApp() {
   debugSync("API_URL actual", API_URL);
-
   if (DEBUG_SYNC) {
     console.log("[SYNC] URL test health:", getJsonpTestUrl("health"));
     console.log("[SYNC] URL test sync:", getJsonpTestUrl("sync"));
@@ -1127,6 +1459,10 @@ finalizarPedido.addEventListener("click", () => {
 
 if (abrirMenuProductos) {
   abrirMenuProductos.addEventListener("click", toggleMenuProductos);
+}
+
+if (abrirMenuFavoritos) {
+  abrirMenuFavoritos.addEventListener("click", toggleMenuFavoritos);
 }
 
 if (abrirCrearProducto) {
