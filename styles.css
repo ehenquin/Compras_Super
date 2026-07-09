@@ -792,3 +792,153 @@ button:disabled { cursor: wait; opacity: .65; }
     grid-template-columns: 1fr;
   }
 }
+
+
+.product-result-row-fav {
+  grid-template-columns: 1fr 44px 52px;
+}
+
+.fav-small-btn {
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: #b08900;
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.fav-small-btn.activo {
+  border-color: #f0c400;
+  background: #fff7d6;
+  color: #b08900;
+}
+
+.btn-menu-favoritos {
+  width: 100%;
+  min-height: 54px;
+  border: 2px solid #f0c400;
+  background: #fff7d6;
+  color: #7a5a00;
+  font-size: 17px;
+  white-space: normal;
+}
+
+.acciones-superiores-3 {
+  grid-template-columns: 1fr .8fr auto;
+}
+
+.menu-producto-row {
+  display: grid;
+  grid-template-columns: 1fr 48px;
+  align-items: stretch;
+  border-top: 1px solid var(--line);
+}
+
+.menu-producto-row:first-child {
+  border-top: 0;
+}
+
+.menu-producto-row .menu-producto-item {
+  border-top: 0;
+}
+
+.fav-menu-btn {
+  min-height: 46px;
+  border: 0;
+  border-left: 1px solid var(--line);
+  background: #fff;
+  color: #b08900;
+  font-size: 25px;
+  font-weight: 900;
+}
+
+.fav-menu-btn.activo {
+  background: #fff7d6;
+  color: #b08900;
+}
+
+.menu-favoritos {
+  border-color: #f0c400;
+}
+
+@media (max-width: 430px) {
+  .acciones-superiores-3 {
+    grid-template-columns: 1fr 92px;
+  }
+
+  .acciones-superiores-3 .dropdown-productos:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .btn-menu-favoritos {
+    min-height: 50px;
+    font-size: 15px;
+    padding-inline: 9px;
+  }
+}
+
+
+#cancelarCrearProducto {
+  border: 2px solid var(--red);
+  background: #ffd6d1;
+  color: var(--red);
+  box-shadow: inset 0 0 0 1px rgba(180, 35, 24, 0.18);
+}
+
+
+.modal-card-alerta-final {
+  border: 4px solid #d97706;
+  background: #fff7ed;
+}
+
+.modal-card-alerta-final h2 {
+  color: #c2410c;
+  font-size: 22px;
+}
+
+.modal-card-alerta-final p {
+  color: #7c2d12;
+  font-size: 21px;
+  line-height: 1.25;
+}
+
+.modal-card-alerta-final .btn-confirmar-borrar {
+  background: #c2410c;
+}
+
+.modal-card-alerta-final .btn-cancelar-borrar {
+  background: #1d4ed8;
+}
+
+
+
+
+
+
+.producto-ya-seleccionado {
+  background: #d9f99d !important;
+}
+
+.producto-ya-seleccionado .menu-producto-item,
+.producto-ya-seleccionado .product-result-text {
+  background: #d9f99d !important;
+}
+
+.producto-ya-seleccionado .menu-producto-item::after {
+  content: "  ✓";
+  color: var(--green-dark);
+  font-weight: 900;
+}
+
+.producto-ya-seleccionado .product-result-text strong::after {
+  content: "  ✓";
+  color: var(--green-dark);
+  font-weight: 900;
+}
+
+.producto-ya-seleccionado .add-small-btn {
+  background: var(--green-dark);
+}
