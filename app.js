@@ -17,6 +17,7 @@ let productoNombreMap = new Map();
 let cargando = false;
 let toastTimer = null;
 let pasoConfirmacionBorrado = 1;
+let adminPassActual = "";
 
 const buscar = document.getElementById("buscar");
 const productosDiv = document.getElementById("productos");
@@ -29,6 +30,16 @@ const modalBorrarLista = document.getElementById("modalBorrarLista");
 const confirmarBorrarLista = document.getElementById("confirmarBorrarLista");
 const cancelarBorrarLista = document.getElementById("cancelarBorrarLista");
 const mensajeApp = document.getElementById("mensajeApp");
+
+const modalAdminClave = document.getElementById("modalAdminClave");
+const modalAdminPanel = document.getElementById("modalAdminPanel");
+const adminPassInput = document.getElementById("adminPassInput");
+const adminEntrar = document.getElementById("adminEntrar");
+const adminCancelar = document.getElementById("adminCancelar");
+const adminHacerRespaldo = document.getElementById("adminHacerRespaldo");
+const adminVerEstadisticas = document.getElementById("adminVerEstadisticas");
+const adminCerrarPanel = document.getElementById("adminCerrarPanel");
+const adminStatsPanel = document.getElementById("adminStatsPanel");
 
 const abrirMenuProductos = document.getElementById("abrirMenuProductos");
 const menuProductos = document.getElementById("menuProductos");
@@ -158,8 +169,9 @@ async function requestBackend(params) {
 
 function setSyncEstado(texto, tipo = "") {
   if (!syncEstado) return;
-  syncEstado.textContent = texto;
-  syncEstado.className = "sync-pill" + (tipo ? " " + tipo : "");
+  syncEstado.textContent = "ADMIN";
+  syncEstado.className = "sync-pill admin-pill" + (tipo ? " " + tipo : "");
+  syncEstado.title = "Volcar lista actual al historial";
 }
 
 function campo(obj, nombres) {
@@ -1406,6 +1418,247 @@ document.addEventListener("click", (event) => {
   }
 });
 
+function abrirModalAdminClave() {
+  if (!modalAdminClave) return;
+
+  modalAdminClave.hidden = false;
+
+  setTimeout(() => {
+    if (adminPassInput) {
+      adminPassInput.value = adminPassActual || "";
+      adminPassInput.focus();
+    }
+  }, 50);
+}
+
+function cerrarModalAdminClave() {
+  if (!modalAdminClave) return;
+  modalAdminClave.hidden = true;
+}
+
+function abrirPanelAdmin() {
+  if (!modalAdminPanel) return;
+  modalAdminPanel.hidden = false;
+}
+
+function cerrarPanelAdmin() {
+  if (!modalAdminPanel) return;
+  modalAdminPanel.hidden = true;
+  adminPassActual = "";
+  if (adminPassInput) adminPassInput.value = "";
+}
+
+function entrarPanelAdmin() {
+  const pass = limpiarTexto(adminPassInput ? adminPassInput.value : "");
+
+  if (!pass) {
+    mostrarMensaje("Ingresá la clave ADMIN.");
+    return;
+  }
+
+  adminPassActual = pass;
+
+  cerrarModalAdminClave();
+  abrirPanelAdmin();
+}
+
+function abrirAdminDesdeBoton() {
+  if (adminPassActual) {
+    abrirPanelAdmin();
+    return;
+  }
+
+  abrirModalAdminClave();
+}
+
+function hacerCopiaRespaldoAdmin() {
+  if (!lista.length) {
+    mostrarMensaje("La lista está vacía.");
+    return;
+  }
+
+  if (!adminPassActual) {
+    abrirModalAdminClave();
+    return;
+  }
+
+  mostrarMensaje("Guardando respaldo...");
+
+  requestBackend({
+    action: "guardarHistorial",
+    pass: adminPassActual,
+  })
+    .then((data) => {
+      mostrarMensaje(
+        data && data.idPedido
+          ? `Respaldo guardado: ${data.idPedido}`
+          : "Respaldo guardado.",
+      );
+    })
+    .catch((err) => {
+      console.warn("[ADMIN] No se pudo guardar historial", {
+        code: err.code,
+        message: err.message,
+        response: err.response,
+      });
+
+      mostrarMensaje("No se pudo guardar. Revisá la clave ADMIN.");
+    });
+}
+
+function renderBarraAdmin(nombre, valor, maximo) {
+  const porcentaje =
+    maximo > 0 ? Math.max(4, Math.round((valor / maximo) * 100)) : 0;
+
+  return `
+    <div class="admin-bar-row">
+      <div class="admin-bar-top">
+        <strong>${escapeHtml(nombre)}</strong>
+        <span>${valor}</span>
+      </div>
+      <div class="admin-bar-track">
+        <div class="admin-bar-fill" style="width:${porcentaje}%"></div>
+      </div>
+    </div>
+  `;
+}
+
+function renderEstadisticasAdmin(data) {
+  if (!adminStatsPanel) return;
+
+  const topProductos = Array.isArray(data.topProductos)
+    ? data.topProductos
+    : [];
+  const topCategorias = Array.isArray(data.topCategorias)
+    ? data.topCategorias
+    : [];
+  const topProductos30 = Array.isArray(data.topProductos30)
+    ? data.topProductos30
+    : [];
+
+  const maxProducto = Math.max(
+    1,
+    ...topProductos.map((item) => Number(item.cantidad || 0)),
+  );
+  const maxCategoria = Math.max(
+    1,
+    ...topCategorias.map((item) => Number(item.cantidad || 0)),
+  );
+  const maxProducto30 = Math.max(
+    1,
+    ...topProductos30.map((item) => Number(item.cantidad || 0)),
+  );
+
+  adminStatsPanel.hidden = false;
+
+  adminStatsPanel.innerHTML = `
+    <div class="admin-stats-resumen">
+      <div class="admin-stat-card">
+        <span>Pedidos históricos</span>
+        <strong>${Number(data.totalPedidos || 0)}</strong>
+      </div>
+
+      <div class="admin-stat-card">
+        <span>Productos registrados</span>
+        <strong>${Number(data.totalLineas || 0)}</strong>
+      </div>
+
+      <div class="admin-stat-card">
+        <span>Unidades históricas</span>
+        <strong>${Number(data.totalUnidades || 0)}</strong>
+      </div>
+    </div>
+
+    <section class="admin-chart-card">
+      <h3>Productos más pedidos</h3>
+      ${
+        topProductos.length
+          ? topProductos
+              .map((item) =>
+                renderBarraAdmin(
+                  item.producto,
+                  Number(item.cantidad || 0),
+                  maxProducto,
+                ),
+              )
+              .join("")
+          : `<div class="admin-empty">Todavía no hay datos.</div>`
+      }
+    </section>
+
+    <section class="admin-chart-card">
+      <h3>Productos más pedidos últimos 30 días</h3>
+      ${
+        topProductos30.length
+          ? topProductos30
+              .map((item) =>
+                renderBarraAdmin(
+                  item.producto,
+                  Number(item.cantidad || 0),
+                  maxProducto30,
+                ),
+              )
+              .join("")
+          : `<div class="admin-empty">Sin datos en los últimos 30 días.</div>`
+      }
+    </section>
+
+    <section class="admin-chart-card">
+      <h3>Categorías más pedidas</h3>
+      ${
+        topCategorias.length
+          ? topCategorias
+              .map((item) =>
+                renderBarraAdmin(
+                  item.categoria,
+                  Number(item.cantidad || 0),
+                  maxCategoria,
+                ),
+              )
+              .join("")
+          : `<div class="admin-empty">Todavía no hay datos.</div>`
+      }
+    </section>
+  `;
+}
+
+function cargarEstadisticasAdmin() {
+  if (!adminPassActual) {
+    abrirModalAdminClave();
+    return;
+  }
+
+  if (!adminStatsPanel) return;
+
+  adminStatsPanel.hidden = false;
+  adminStatsPanel.innerHTML = `<div class="admin-empty">Cargando estadísticas...</div>`;
+
+  requestBackend({
+    action: "estadisticasHistorial",
+    pass: adminPassActual,
+  })
+    .then((data) => {
+      renderEstadisticasAdmin(data);
+    })
+    .catch((err) => {
+      console.warn("[ADMIN] No se pudieron cargar estadísticas", {
+        code: err.code,
+        message: err.message,
+        response: err.response,
+      });
+
+      adminStatsPanel.innerHTML = `
+        <div class="admin-empty admin-error">
+          No se pudieron cargar las estadísticas. Revisá la clave ADMIN o la hoja Historial_Compras.
+        </div>
+      `;
+    });
+}
+
+async function volcarListaActualAlHistorialAdmin() {
+  abrirAdminDesdeBoton();
+}
+
 function iniciarApp() {
   debugSync("API_URL actual", API_URL);
   if (DEBUG_SYNC) {
@@ -1478,6 +1731,48 @@ if (cancelarCrearProducto) {
 
 if (formCrearProducto) {
   formCrearProducto.addEventListener("submit", crearProductoNuevo);
+}
+
+if (syncEstado) {
+  syncEstado.addEventListener("click", volcarListaActualAlHistorialAdmin);
+}
+
+if (adminEntrar) {
+  adminEntrar.addEventListener("click", entrarPanelAdmin);
+}
+
+if (adminPassInput) {
+  adminPassInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") entrarPanelAdmin();
+  });
+}
+
+if (adminCancelar) {
+  adminCancelar.addEventListener("click", cerrarModalAdminClave);
+}
+
+if (adminHacerRespaldo) {
+  adminHacerRespaldo.addEventListener("click", hacerCopiaRespaldoAdmin);
+}
+
+if (adminVerEstadisticas) {
+  adminVerEstadisticas.addEventListener("click", cargarEstadisticasAdmin);
+}
+
+if (adminCerrarPanel) {
+  adminCerrarPanel.addEventListener("click", cerrarPanelAdmin);
+}
+
+if (modalAdminClave) {
+  modalAdminClave.addEventListener("click", (event) => {
+    if (event.target === modalAdminClave) cerrarModalAdminClave();
+  });
+}
+
+if (modalAdminPanel) {
+  modalAdminPanel.addEventListener("click", (event) => {
+    if (event.target === modalAdminPanel) cerrarPanelAdmin();
+  });
 }
 
 iniciarApp();
