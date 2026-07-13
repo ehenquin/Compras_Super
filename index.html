@@ -182,6 +182,74 @@
       </div>
     </div>
 
+    <div id="modalAdminClave" class="modal-overlay" hidden>
+      <div class="modal-card admin-card" role="dialog" aria-modal="true">
+        <h2>Panel ADMIN</h2>
+
+        <p>Ingresá la clave para acceder.</p>
+
+        <input
+          id="adminPassInput"
+          class="input admin-pass-input"
+          type="password"
+          placeholder="Clave ADMIN"
+          autocomplete="off"
+        />
+
+        <div class="modal-actions admin-modal-actions">
+          <button id="adminEntrar" class="btn btn-admin-entrar" type="button">
+            Entrar
+          </button>
+
+          <button
+            id="adminCancelar"
+            class="btn btn-cancelar-borrar"
+            type="button"
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="modalAdminPanel" class="modal-overlay" hidden>
+      <div class="modal-card admin-panel-card" role="dialog" aria-modal="true">
+        <h2>Panel ADMIN</h2>
+
+        <p class="admin-panel-subtitle">
+          Herramientas internas para respaldo y control de compras.
+        </p>
+
+        <div class="admin-panel-buttons">
+          <button
+            id="adminHacerRespaldo"
+            class="btn btn-admin-backup"
+            type="button"
+          >
+            Hacer copia de respaldo
+          </button>
+
+          <button
+            id="adminVerEstadisticas"
+            class="btn btn-admin-stats"
+            type="button"
+          >
+            Estadísticas
+          </button>
+
+          <button id="adminCerrarPanel" class="btn btn-light" type="button">
+            Cerrar
+          </button>
+        </div>
+
+        <section
+          id="adminStatsPanel"
+          class="admin-stats-panel"
+          hidden
+        ></section>
+      </div>
+    </div>
+
     <div id="mensajeApp" class="toast" role="status" aria-live="polite"></div>
 
     <script src="app.js"></script>
